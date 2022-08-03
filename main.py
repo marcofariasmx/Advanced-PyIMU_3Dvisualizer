@@ -57,8 +57,10 @@ ok_button.place(x = 150, y = 120, anchor="center")
 
 def InitPygame():
     global display
+    #global gameDisplay
     pygame.init()
     display = (1280,960)
+    #gameDisplay =  pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
     pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
     pygame.display.set_caption('IMU visualizer   (Press Esc to exit)')
 
@@ -105,27 +107,56 @@ def DrawGL():
 
     DrawText(" Roll: {}°     Pitch: {}°      Yaw: {}°".format(round(myimu.Roll,1),round(myimu.Pitch,1),round(myimu.Yaw,1)))
     DrawBoard()
+
+    #plotImg = pygame.image.load('plot.png')
+
+    #gameDisplay.blit(plotImg, (300,300))
+
     pygame.display.flip()
 
 def SerialConnection ():
     global serial_object
     serial_object = serial.Serial( myport.Name, baudrate= myport.Speed, timeout = myport.Timeout)
 
+class ReadLine:
+    def __init__(self, s):
+        self.buf = bytearray()
+        self.s = s
+    
+    def readline(self):
+        i = self.buf.find(b"\n")
+        if i >= 0:
+            r = self.buf[:i+1]
+            self.buf = self.buf[i+1:]
+            return r
+        while True:
+            i = max(1, min(2048, self.s.in_waiting))
+            data = self.s.read(i)
+            i = data.find(b"\n")
+            if i >= 0:
+                r = self.buf + data[:i+1]
+                self.buf[0:] = data[i+1:]
+                return r
+            else:
+                self.buf.extend(data)
+
 def ReadData():
 
+    rl = ReadLine(serial_object)
+
     while True:
-        
-        serial_input = serial_object.readline()
-        #Convert serial byte line to string
-        serial_input = serial_input.decode('unicode_escape')
+
+        data = rl.readline().decode('unicode_escape')
+        #data = serial_object.read(256)
+        #data.splitlines()
 
         # Received dataframe example:
         # Orientation: 347.66, 1.26, 1.38 (YAW, PITCH, ROLL)
         # Quaternion: 0.1076, -0.0097, 0.0132, 0.9941
 
-        if serial_input[0] == 'O': #Orientation
-            serial_input = serial_input[13:].rstrip('\n')
-            orientationData = serial_input.split(', ')
+        if data[0] == 'O': #Orientation
+            data = data[13:].rstrip('\n')
+            orientationData = data.split(', ')
             yaw = orientationData[0]
             pitch = orientationData[1]
             roll = orientationData[2]

@@ -8,6 +8,7 @@ from tkinter import ttk
 import time
 import serial
 import threading
+from dataPlotter import live_plotter
 
 ApplicationGL = False
 
@@ -108,7 +109,11 @@ def DrawGL():
     DrawText(" Roll: {}°     Pitch: {}°      Yaw: {}°".format(round(myimu.Roll,1),round(myimu.Pitch,1),round(myimu.Yaw,1)))
     DrawBoard()
 
-    #plotImg = pygame.image.load('plot.png')
+    # plotImg = pygame.image.load('plot.png')
+
+    # imgData = pygame.image.tostring(plotImg, "RGBA", True)  
+
+    # glDrawPixels(plotImg.get_width(), plotImg.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, imgData)       
 
     #gameDisplay.blit(plotImg, (300,300))
 
@@ -177,11 +182,20 @@ def main():
  
         try:
             SerialConnection()
+            line1 = []
+            line2 = []
+            line3 = []
+            list = [0] * 100
+            list2 = [0] * 100
+            list3 = [0] * 100
+            
+            pygame.time.wait(10)
             myThread1 = threading.Thread(target = ReadData)
             myThread1.daemon = True
             myThread1.start() 
             while True:
                 event = pygame.event.poll()
+                line1, line2, line3, list, list2, list3 = live_plotter(myimu.Yaw, myimu.Pitch, myimu.Roll, line1, line2, line3, list, list2, list3)
                 if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                     pygame.quit()
                     break 
